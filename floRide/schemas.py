@@ -1,6 +1,7 @@
 import datetime
 from typing import List, Optional
-from pydantic import BaseModel, validator, constr, PositiveInt, NonNegativeDecimal, EmailStr
+from pydantic import BaseModel, validator, constr, PositiveInt
+from decimal import Decimal
 
 #This file is to store all the pydantic schemas that we make
 #This is a pydantic model i.e a class that inherits from BaseModel and 
@@ -13,12 +14,13 @@ from pydantic import BaseModel, validator, constr, PositiveInt, NonNegativeDecim
 class UserBase(BaseModel):
     first_name: str
     last_name: str
-    email: EmailStr
+    email: str 
     phone_number: constr(max_length=12)
 
 
 class UserCreate(UserBase):
-    password: str
+    #password: str
+    pass
 
 
 class User(UserBase):
@@ -63,8 +65,8 @@ class Review(ReviewBase):
 
 
 class LocationCoordsBase(BaseModel):
-    latitude: NonNegativeDecimal
-    longitude: NonNegativeDecimal
+    latitude: Decimal
+    longitude: Decimal
 
 
 class LocationCoordsCreate(LocationCoordsBase):
@@ -98,11 +100,11 @@ class Payment(PaymentBase):
 class DriverBase(BaseModel):
     first_name: str
     last_name: str
-    email: EmailStr
+    email: str 
     phone_number: constr(max_length=12)
     gender: constr(max_length=1)
     license_number: str
-    rating: NonNegativeDecimal
+    rating: Decimal
     date_of_birth: datetime.datetime
     car_id: PositiveInt
     location_id: PositiveInt
@@ -144,8 +146,8 @@ class BookingBase(BaseModel):
     booking_datetime: datetime.datetime
     completion_datetime: datetime.datetime
     payment_id: PositiveInt
-    fare: NonNegativeDecimal
-    distance: NonNegativeDecimal
+    fare: Decimal
+    distance: Decimal
     status_id: PositiveInt
     review_id: Optional[PositiveInt]
 
