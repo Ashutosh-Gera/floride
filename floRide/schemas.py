@@ -17,6 +17,8 @@ class UserBase(BaseModel):
     email: str 
     phone_number: constr(max_length=12)
 
+class UserLogin(BaseModel):
+    email: str
 
 class UserCreate(UserBase):
     #password: str
