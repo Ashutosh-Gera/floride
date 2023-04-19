@@ -113,7 +113,8 @@ class DriverBase(BaseModel):
 
 
 class DriverCreate(DriverBase):
-    password: str
+    # password: str
+    pass
 
 
 class Driver(DriverBase):

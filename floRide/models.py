@@ -79,7 +79,3 @@ class Booking(Base):
     distance = Column(Numeric(4,1), nullable=False)
     status_id = Column(Integer, ForeignKey("booking_status.status_id"), nullable=False)
     review_id = Column(Integer, ForeignKey("review.review_id"))
-
-
-
-
