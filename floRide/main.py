@@ -44,12 +44,18 @@ def view_past_bookings(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="No bookings found")
     return db_booking
 
-
 # driver registration
 @app.post("/drivers/signup", response_model=schemas.Driver)
 def register_driver(driver: schemas.DriverCreate, db: Session = Depends(get_db)):
-    # date_of_birth throwing an error for some reason and I have no clue why
     db_driver = crud.get_driver_by_email(db, email=driver.email)
     if db_driver:
         raise HTTPException(status_code=400, detail="Email already registered")
     return crud.register_driver(db=db, driver=driver)
+
+# driver login
+@app.post("/drivers/login", response_model=schemas.Driver)
+def login_driver(driver: schemas.DriverLogin, db: Session = Depends(get_db)):
+    db_driver = crud.get_driver_by_email(db, email=driver.email)
+    if not db_driver:
+        raise HTTPException(status_code=400, detail="Incorrect email")
+    return db_driver

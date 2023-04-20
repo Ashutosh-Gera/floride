@@ -107,7 +107,7 @@ class DriverBase(BaseModel):
     gender: constr(max_length=1)
     license_number: str
     rating: Decimal
-    date_of_birth: datetime.datetime
+    date_of_birth: datetime.date
     car_id: PositiveInt
     location_id: PositiveInt
 
@@ -115,6 +115,10 @@ class DriverBase(BaseModel):
 class DriverCreate(DriverBase):
     # password: str
     pass
+
+
+class DriverLogin(BaseModel):
+    email: str
 
 
 class Driver(DriverBase):
