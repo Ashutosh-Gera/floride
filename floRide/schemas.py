@@ -159,19 +159,13 @@ class BookingBase(BaseModel):
     review_id: Optional[PositiveInt]
 
 
-class BookingCreate(BookingBase):
-    pass
+class BookingCreate(BaseModel):
+    pickup_location_id: PositiveInt
+    dropoff_location_id: PositiveInt
 
 
 class Booking(BookingBase):
     booking_id: PositiveInt
-    passenger: Optional[User] = None
-    driver: Optional[Driver] = None
-    pickup_location: Optional[LocationCoords] = None
-    dropoff_location: Optional[LocationCoords] = None
-    payment: Optional[Payment] = None
-    status: Optional[BookingStatus] = None
-    review: Optional[Review] = None
 
     class Config:
         orm_mode = True

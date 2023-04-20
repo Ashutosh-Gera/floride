@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 
@@ -37,9 +38,9 @@ def login_user(user: schemas.UserLogin, db: Session = Depends(get_db)):
     return db_user
 
 # Given a user id, return all the past bookings of that user
-@app.get("/users/{user_id}/bookings", response_model=schemas.Booking)
-def view_past_bookings(user_id: int, db: Session = Depends(get_db)):
-    db_booking = crud.view_past_bookings(db, user_id=user_id)
+@app.get("/users/{user_id}/bookings", response_model=List[schemas.Booking])
+def view_past_bookings_by_user(user_id: int, db: Session = Depends(get_db)):
+    db_booking = crud.view_past_bookings_by_user(db, user_id=user_id)
     if db_booking is None:
         raise HTTPException(status_code=404, detail="No bookings found")
     return db_booking
@@ -61,10 +62,10 @@ def login_driver(driver: schemas.DriverLogin, db: Session = Depends(get_db)):
     return db_driver
 
 # Given a driver id, return all the past bookings of that driver
-@app.get("/drivers/{driver_id}/bookings", response_model=schemas.Booking)
+@app.get("/drivers/{driver_id}/bookings", response_model=List[schemas.Booking])
 def view_bookings(driver_id: int, db: Session = Depends(get_db)):
     # Check if there exists a booking with driver_id=driver_id and status_id=1
-    db_bookings = crud.get_bookings(db, driver_id=driver_id)
+    db_bookings = crud.get_bookings_by_driver(db, driver_id=driver_id)
     if db_bookings is None:
         raise HTTPException(status_code=404, detail="No bookings found")
     return db_bookings
@@ -97,7 +98,7 @@ def complete_booking(driver_id: int, booking_id: int, db: Session = Depends(get_
 
 # Given a booking_id, let the user rate the ride
 @app.post("/users/{user_id}/bookings/{booking_id}/rate", response_model=schemas.Booking)
-def rate_ride(user_id: int, booking_id: int, db: Session = Depends(get_db)):
+def rate_ride(review: schemas.ReviewCreate, booking_id: int, db: Session = Depends(get_db)):
     # Check if there exists a booking with user_id=user_id and status_id=2
     db_booking = crud.get_booking_by_id(db, booking_id=booking_id)
     if db_booking is None:
@@ -109,4 +110,23 @@ def rate_ride(user_id: int, booking_id: int, db: Session = Depends(get_db)):
 
     # Check if the user is the same as the user_id
 
-    return crud.rate_ride(db=db, booking_id=booking_id)
+    return crud.rate_ride(db=db, booking_id=booking_id, review=review)
+
+
+# View the past bookings of a driver
+@app.get("/drivers/{driver_id}/past-bookings", response_model=schemas.Booking)
+def view_past_bookings_by_driver(driver_id: int, db: Session = Depends(get_db)):
+    db_bookings = crud.view_past_bookings_by_driver(db, driver_id=driver_id)
+    if db_bookings is None:
+        raise HTTPException(status_code=404, detail="No bookings found")
+    return db_bookings
+
+
+# new booking
+@app.post("/users/{user_id}/bookings/new", response_model=schemas.Booking)
+def new_booking(booking: schemas.BookingCreate, user_id: int, db: Session = Depends(get_db)):
+    # Check if there exists a booking with user_id=user_id and status_id=1
+    db_bookings = crud.get_ongoing_booking_by_user(db, user_id=user_id)
+    if db_bookings:
+        raise HTTPException(status_code=400, detail="You have an ongoing booking")
+    return crud.new_booking(db=db, booking=booking, user_id=user_id)

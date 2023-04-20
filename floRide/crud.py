@@ -3,6 +3,8 @@
 
 # Read data
 
+from datetime import datetime, timedelta
+import random
 from sqlalchemy.orm import Session
 import models, schemas
 
@@ -29,7 +31,7 @@ def create_user(db: Session, user: schemas.UserCreate):
 
 
 def create_booking(db: Session, booking: schemas.BookingCreate):
-    db_booking = models.Booking(user_id=booking.user_id, car_id=booking.car_id, booking_date=booking.booking_date, booking_time=booking.booking_time, pickup_location=booking.pickup_location, dropoff_location=booking.dropoff_location)
+    db_booking = models.Booking(user_id=booking.passenger_id, car_id=booking.car_id, booking_date=booking.booking_date, booking_time=booking.booking_time, pickup_location=booking.pickup_location, dropoff_location=booking.dropoff_location)
     db.add(db_booking)
     db.commit()
     db.refresh(db_booking)
@@ -38,9 +40,9 @@ def create_booking(db: Session, booking: schemas.BookingCreate):
 def get_location(db: Session, location_id: int):
     return db.query(models.Location).filter(models.Location.location_id == location_id).first()
 
-def view_past_bookings(db: Session, user_id: int):
+def view_past_bookings_by_user(db: Session, user_id: int):
     # FOR SOME REASON .all() IS NOT WORKING. I am using .first() for now
-    return db.query(models.Booking).filter(models.Booking.passenger_id == user_id).first()
+    return db.query(models.Booking).filter(models.Booking.passenger_id == user_id).all()
 
 # register driver
 def register_driver(db: Session, driver: schemas.DriverCreate):
@@ -74,7 +76,9 @@ def get_booking_by_id(db: Session, booking_id: int):
 #     return db.query(models.Booking).filter(models.Booking.booking_id == booking_id).first()
 
 def complete_ride(db: Session, booking_id: int):
-    db.query(models.Booking).filter(models.Booking.booking_id == booking_id).update({"status_id": 2})
+    ongoing_ride = db.query(models.Booking).filter(models.Booking.booking_id == booking_id)
+    ongoing_ride.update({"status_id": 2})
+    ongoing_ride.update({"completion_datetime": datetime.now()})
     db.commit()
     return db.query(models.Booking).filter(models.Booking.booking_id == booking_id).first()
 
@@ -82,3 +86,82 @@ def cancel_ride(db: Session, booking_id: int):
     db.query(models.Booking).filter(models.Booking.booking_id == booking_id).update({"status_id": 3})
     db.commit()
     return db.query(models.Booking).filter(models.Booking.booking_id == booking_id).first()
+
+def rate_ride(db: Session, booking_id: int, review: schemas.ReviewCreate):
+    # First, create a review object in the Review table
+    db_review = models.Review(star_review=review.star_review, feedback=review.feedback)
+    db.add(db_review)
+    db.commit()
+    db.refresh(db_review)
+
+    # Then, update the booking object with the review_id
+    db.query(models.Booking).filter(models.Booking.booking_id == booking_id).update({"review_id": db_review.review_id})
+    db.commit()
+    return db.query(models.Booking).filter(models.Booking.booking_id == booking_id).first()
+
+def view_past_bookings_by_driver(db: Session, driver_id: int):
+    # FOR SOME REASON .all() IS NOT WORKING. I am using .first() for no
+    return db.query(models.Booking).filter(models.Booking.driver_id == driver_id).all()
+
+def get_ongoing_booking_by_user(db: Session, user_id: int):
+    return db.query(models.Booking).filter(models.Booking.passenger_id == user_id, models.Booking.status_id == 1).first()
+
+def new_booking(db: Session, booking: schemas.BookingCreate, user_id: int):
+
+    # Calculate fare and distance
+    fare, distance = calculate_fare_distance(booking.pickup_location_id, booking.dropoff_location_id)
+
+    # Initiate payment
+    db_payment = initiate_payment(db, fare)
+
+    # Find available driver
+    available_driver_id = None
+
+    # Get the list of driver_id's from the driver table
+    driver_ids = db.query(models.Driver.driver_id).all()
+
+    # Iterate through driver_ids, and if either there is no entry in booking for that driver_id, or if the status_id is not 1, then assign that driver_id to available_driver_id and break out of the loop
+    for driver_id in driver_ids:
+        # If there is no entry in booking for that driver_id, then assign that driver_id to available_driver_id and break out of the loop
+        if db.query(models.Booking).filter(models.Booking.driver_id == driver_id[0]).first() == None:
+            available_driver_id = driver_id[0]
+            break
+        # If there is an entry in booking for that driver_id, but the status_id is not 1, then assign that driver_id to available_driver_id and break out of the loop
+        elif db.query(models.Booking).filter(models.Booking.driver_id == driver_id[0], models.Booking.status_id == 1).all() is None:
+            available_driver_id = driver_id[0]
+            break
+
+    db_booking = models.Booking(
+        passenger_id=user_id,
+        driver_id=available_driver_id,
+        pickup_location_id=booking.pickup_location_id,
+        dropoff_location_id=booking.dropoff_location_id,
+        booking_datetime = datetime.now(),
+        completion_datetime = datetime.now() + timedelta(days=1),
+        payment_id=db_payment.payment_id,
+        fare=fare,
+        distance=distance,
+        status_id=1
+        )
+    db.add(db_booking)
+    db.commit()
+    db.refresh(db_booking)
+    return db_booking
+
+def calculate_fare_distance(location_id_1: int, location_id_2: int):
+    distance = abs(location_id_1 - location_id_2)
+    fare = distance * 40
+    return (fare, distance)
+
+def initiate_payment(db: Session, fare: int):
+    # This function will be used to initiate payment with Stripe
+    # For now, I will just return a dummy payment object
+    db_payment = models.Payment(
+        payment_datetime=datetime.now(),
+        payment_method=random.choice(["Cash", "Card", "UPI"]),
+        payment_amount=fare
+    )
+    db.add(db_payment)
+    db.commit()
+    db.refresh(db_payment)
+    return db_payment
