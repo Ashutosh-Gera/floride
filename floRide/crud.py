@@ -60,3 +60,25 @@ def register_driver(db: Session, driver: schemas.DriverCreate):
     db.commit()
     db.refresh(db_driver)
     return db_driver
+
+
+def get_bookings_by_driver(db: Session, driver_id: int):
+    return db.query(models.Booking).filter(models.Booking.driver_id == driver_id).all()
+
+def get_booking_by_id(db: Session, booking_id: int):
+    return db.query(models.Booking).filter(models.Booking.booking_id == booking_id).first()
+
+# def accept_booking(db: Session, booking_id: int):
+#     db.query(models.Booking).filter(models.Booking.booking_id == booking_id).update({"status_id": 2})
+#     db.commit()
+#     return db.query(models.Booking).filter(models.Booking.booking_id == booking_id).first()
+
+def complete_ride(db: Session, booking_id: int):
+    db.query(models.Booking).filter(models.Booking.booking_id == booking_id).update({"status_id": 2})
+    db.commit()
+    return db.query(models.Booking).filter(models.Booking.booking_id == booking_id).first()
+
+def cancel_ride(db: Session, booking_id: int):
+    db.query(models.Booking).filter(models.Booking.booking_id == booking_id).update({"status_id": 3})
+    db.commit()
+    return db.query(models.Booking).filter(models.Booking.booking_id == booking_id).first()

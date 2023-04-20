@@ -59,3 +59,54 @@ def login_driver(driver: schemas.DriverLogin, db: Session = Depends(get_db)):
     if not db_driver:
         raise HTTPException(status_code=400, detail="Incorrect email")
     return db_driver
+
+# Given a driver id, return all the past bookings of that driver
+@app.get("/drivers/{driver_id}/bookings", response_model=schemas.Booking)
+def view_bookings(driver_id: int, db: Session = Depends(get_db)):
+    # Check if there exists a booking with driver_id=driver_id and status_id=1
+    db_bookings = crud.get_bookings(db, driver_id=driver_id)
+    if db_bookings is None:
+        raise HTTPException(status_code=404, detail="No bookings found")
+    return db_bookings
+
+# Given a booking_id, let the driver reject the booking
+@app.post("/drivers/{driver_id}/bookings/{booking_id}/reject", response_model=schemas.Booking)
+def reject_booking(driver_id: int, booking_id: int, db: Session = Depends(get_db)):
+    # Check if there exists a booking with driver_id=driver_id and status_id=1
+    db_booking = crud.get_booking_by_id(db, booking_id=booking_id)
+    if db_booking is None:
+        raise HTTPException(status_code=404, detail="No bookings found")
+    return crud.cancel_ride(db=db, booking_id=booking_id)
+
+# Given a booking_id, let the driver complete the booking
+@app.post("/drivers/{driver_id}/bookings/{booking_id}/complete", response_model=schemas.Booking)
+def complete_booking(driver_id: int, booking_id: int, db: Session = Depends(get_db)):
+    # Check if there exists a booking with driver_id=driver_id and status_id=1
+    db_booking = crud.get_booking_by_id(db, booking_id=booking_id)
+    if db_booking is None:
+        raise HTTPException(status_code=404, detail="No bookings found")
+    if db_booking.status_id == 2:
+        raise HTTPException(status_code=400, detail="Ride is already complete")
+    elif db_booking.status_id == 3:
+        raise HTTPException(status_code=400, detail="Ride has been cancelled")
+
+    # Check if the driver is the same as the driver_id
+    ride = crud.complete_ride(db=db, booking_id=booking_id)
+
+    return ride
+
+# Given a booking_id, let the user rate the ride
+@app.post("/users/{user_id}/bookings/{booking_id}/rate", response_model=schemas.Booking)
+def rate_ride(user_id: int, booking_id: int, db: Session = Depends(get_db)):
+    # Check if there exists a booking with user_id=user_id and status_id=2
+    db_booking = crud.get_booking_by_id(db, booking_id=booking_id)
+    if db_booking is None:
+        raise HTTPException(status_code=404, detail="No bookings found")
+    if db_booking.status_id == 1:
+        raise HTTPException(status_code=400, detail="Ride is not complete")
+    elif db_booking.status_id == 3:
+        raise HTTPException(status_code=400, detail="Ride has been cancelled")
+
+    # Check if the user is the same as the user_id
+
+    return crud.rate_ride(db=db, booking_id=booking_id)
