@@ -54,7 +54,6 @@ def get_location(db: Session, location_id: int):
     return db.query(models.Location).filter(models.Location.location_id == location_id).first()
 
 def view_past_bookings_by_user(db: Session, user_id: int):
-    # FOR SOME REASON .all() IS NOT WORKING. I am using .first() for now
     return db.query(models.Booking).filter(models.Booking.passenger_id == user_id).all()
 
 # register driver
@@ -136,8 +135,15 @@ def rate_ride(db: Session, booking_id: int, review: schemas.ReviewCreate):
     return db.query(models.Booking).filter(models.Booking.booking_id == booking_id).first()
 
 def view_past_bookings_by_driver(db: Session, driver_id: int):
-    # FOR SOME REASON .all() IS NOT WORKING. I am using .first() for no
-    return db.query(models.Booking).filter(models.Booking.driver_id == driver_id).all()
+    past_bookings = None
+    try:
+        db.begin()
+        past_bookings = db.query(models.Booking).filter(models.Booking.driver_id == driver_id).all()
+        db.commit()
+    except:
+        db.rollback()
+        raise
+    return past_bookings
 
 def get_ongoing_booking_by_user(db: Session, user_id: int):
     return db.query(models.Booking).filter(models.Booking.passenger_id == user_id, models.Booking.status_id == 1).first()
