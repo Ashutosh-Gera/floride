@@ -61,7 +61,7 @@ def login_driver(driver: schemas.DriverLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Incorrect email")
     return db_driver
 
-# Given a driver id, return all the past bookings of that driver
+# Given a driver id, return the active booking of that driver
 @app.get("/drivers/{driver_id}/bookings", response_model=List[schemas.Booking])
 def view_bookings(driver_id: int, db: Session = Depends(get_db)):
     # Check if there exists a booking with driver_id=driver_id and status_id=1
