@@ -24,7 +24,7 @@ def get_users(db: Session, skip: int = 0, limit: int = 100):
 def create_user(db: Session, user: schemas.UserCreate):
     #fake_hashed_password = user.password + "notreallyhashed"
     try:
-        db.begin()
+        # db.begin()
 
         db_user = models.User(first_name=user.first_name, last_name=user.last_name, email=user.email, phone_number=user.phone_number)
         db.add(db_user)
@@ -39,7 +39,7 @@ def create_user(db: Session, user: schemas.UserCreate):
 
 def create_booking(db: Session, booking: schemas.BookingCreate):
     try:
-        db.begin()
+        # db.begin()
 
         db_booking = models.Booking(user_id=booking.passenger_id, car_id=booking.car_id, booking_date=booking.booking_date, booking_time=booking.booking_time, pickup_location=booking.pickup_location, dropoff_location=booking.dropoff_location)
         db.add(db_booking)
@@ -59,7 +59,7 @@ def view_past_bookings_by_user(db: Session, user_id: int):
 # register driver
 def register_driver(db: Session, driver: schemas.DriverCreate):
     try:
-        db.begin()
+        # db.begin()
 
         db_driver = models.Driver(
             first_name=driver.first_name,
@@ -83,7 +83,7 @@ def register_driver(db: Session, driver: schemas.DriverCreate):
 
 
 def get_bookings_by_driver(db: Session, driver_id: int):
-    return db.query(models.Booking).filter(models.Booking.driver_id == driver_id).all()
+    return db.query(models.Booking).filter(models.Booking.driver_id == driver_id, models.Booking.status_id == 1).all()
 
 def get_booking_by_id(db: Session, booking_id: int):
     return db.query(models.Booking).filter(models.Booking.booking_id == booking_id).first()
@@ -96,7 +96,7 @@ def get_booking_by_id(db: Session, booking_id: int):
 def complete_ride(db: Session, booking_id: int):
     # T := R(A) -> W(A) -> W(A)
     try:
-        db.begin()
+        # db.begin()
         ongoing_ride = db.query(models.Booking).filter(models.Booking.booking_id == booking_id)
         ongoing_ride.update({"status_id": 2})
         ongoing_ride.update({"completion_datetime": datetime.now()})
@@ -108,7 +108,7 @@ def complete_ride(db: Session, booking_id: int):
 
 def cancel_ride(db: Session, booking_id: int):
     try:
-        db.begin()
+        # db.begin()
         db.query(models.Booking).filter(models.Booking.booking_id == booking_id).update({"status_id": 3})
         db.commit()
     except:
@@ -118,7 +118,7 @@ def cancel_ride(db: Session, booking_id: int):
 
 def rate_ride(db: Session, booking_id: int, review: schemas.ReviewCreate):
     try:
-        db.begin()
+        # db.begin()
 
         # First, create a review object in the Review table
         db_review = models.Review(star_review=review.star_review, feedback=review.feedback)
@@ -135,14 +135,7 @@ def rate_ride(db: Session, booking_id: int, review: schemas.ReviewCreate):
     return db.query(models.Booking).filter(models.Booking.booking_id == booking_id).first()
 
 def view_past_bookings_by_driver(db: Session, driver_id: int):
-    past_bookings = None
-    try:
-        db.begin()
-        past_bookings = db.query(models.Booking).filter(models.Booking.driver_id == driver_id).all()
-        db.commit()
-    except:
-        db.rollback()
-        raise
+    past_bookings = db.query(models.Booking).filter(models.Booking.driver_id == driver_id).all()
     return past_bookings
 
 def get_ongoing_booking_by_user(db: Session, user_id: int):
@@ -154,7 +147,8 @@ def new_booking(db: Session, booking: schemas.BookingCreate, user_id: int):
     fare, distance = calculate_fare_distance(booking.pickup_location_id, booking.dropoff_location_id)
 
     try:
-        db.begin()
+        # if a transaction is already in progress, then the following line will raise an exception
+        # db.begin()
         # Initiate payment
         db_payment = initiate_payment(db, fare)
 
@@ -202,7 +196,7 @@ def calculate_fare_distance(location_id_1: int, location_id_2: int):
 
 def initiate_payment(db: Session, fare: int):
     try:
-        db.begin()
+        # db.begin()
         db_payment = models.Payment(
             payment_datetime=datetime.now(),
             payment_method=random.choice(["Cash", "Card", "UPI"]),

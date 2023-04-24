@@ -114,7 +114,7 @@ def rate_ride(review: schemas.ReviewCreate, booking_id: int, db: Session = Depen
 
 
 # View the past bookings of a driver
-@app.get("/drivers/{driver_id}/past-bookings", response_model=schemas.Booking)
+@app.get("/drivers/{driver_id}/past-bookings", response_model=List[schemas.Booking])
 def view_past_bookings_by_driver(driver_id: int, db: Session = Depends(get_db)):
     db_bookings = crud.view_past_bookings_by_driver(db, driver_id=driver_id)
     if db_bookings is None:
